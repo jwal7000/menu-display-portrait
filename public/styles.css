@@ -1,0 +1,431 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Five Daughters Bakery — Digital Menu Board (PORTRAIT)
+   Target: 9:16 vertical screen (1080×1920 reference).
+   All sizes in vh/vw so the layout scales to any 9:16 screen without
+   media queries.
+───────────────────────────────────────────────────────────────────────── */
+
+/* ── Custom Fonts ── */
+@font-face {
+  font-family: 'Neutraface 2 Display';
+  src: url('/fonts/Neutra2Display-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/*
+  Scale 1rem with viewport width.
+  Portrait reference is 1080px wide → 16/1080 × 100 = 1.4815vw per rem.
+*/
+html { font-size: 1.4815vw; }
+
+/* ── Design tokens ── */
+:root {
+  /* FDB Brand Palette */
+  --pink:            #f59bbb;
+  --pink-dim:        #e07a9e;
+  --pink-pale:       #fce8f1;
+  --plum:            #5c2946;
+  --plum-mid:        #7a3a5e;
+  --teal:            #9cdbd9;
+  --teal-dim:        #6bbfbc;
+  --white:           #ffffff;
+  --off-white:       #fdf6fa;
+
+  /* Semantic roles */
+  --bg:              var(--off-white);
+  --surface:         var(--white);
+  --surface-2:       var(--pink-pale);
+  --border:          #f0cede;
+  --border-light:    #f7dde9;
+
+  --text-primary:    var(--plum);
+  --text-secondary:  var(--plum-mid);
+  --text-muted:      #a0708a;
+
+  --accent:          var(--pink);
+  --accent-bright:   var(--pink-dim);
+  --price-color:     var(--plum);
+
+  --sold-out-text:   #c09aac;
+  --sold-out-line:   #dbb0c6;
+
+  --warn-bg:         #fff0f5;
+  --warn-border:     var(--pink-dim);
+  --warn-text:       var(--plum);
+
+  /* Typography */
+  --font-display:    'Neutraface 2 Display', 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-ui:         'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Layout — tuned for portrait 9:16 */
+  --header-h:        12vh;
+  --footer-h:        4vh;
+  --warn-h:          3vh;
+  --pad-x:           2.8vw;
+  --pad-y:           1.8vh;
+  --radius:          0.8vw;
+  --gap:             2.2vw;
+}
+
+/* ── Base ── */
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Warning banner ── */
+.connection-warning {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 200;
+  height: var(--warn-h);
+  background: var(--warn-bg);
+  border-bottom: 1px solid var(--warn-border);
+  color: var(--warn-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1vw;
+  font-family: var(--font-display);
+  font-size: 1.4vh;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  transition: transform 0.35s ease;
+}
+
+.connection-warning.hidden { display: none; }
+
+.warning-icon { font-size: 1.5vh; }
+
+/* Shift layout down when warning is visible */
+body.has-warning .header    { top: var(--warn-h); }
+body.has-warning .menu-root { top: calc(var(--header-h) + var(--warn-h)); }
+
+/* ── Header — stacked logo + location for portrait ── */
+.header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: var(--header-h);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8vh;
+  padding: 0 var(--pad-x);
+  background: var(--white);
+  border-bottom: 3px solid var(--pink);
+  transition: top 0.35s ease;
+  box-shadow: 0 2px 12px rgba(245, 155, 187, 0.18);
+}
+
+.header-logo {
+  height: calc(var(--header-h) * 0.58);
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.header-location {
+  font-family: var(--font-display);
+  font-size: clamp(0.75rem, 1.6vh, 1.2rem);
+  font-weight: 600;
+  color: var(--plum);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* ── Menu root ── */
+.menu-root {
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  right: 0;
+  bottom: var(--footer-h);
+  overflow: hidden;
+  padding: var(--pad-y) var(--pad-x);
+  transition: top 0.35s ease;
+}
+
+/* ── Sections grid — 2 columns for portrait ── */
+.sections-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--gap);
+  align-items: start;
+  animation: fadeUp 0.45s ease both;
+}
+
+/* ── Section stack (Rolls + Paleo stacked in one grid cell) ── */
+.section-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+/* ── Section card ── */
+.section-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(92, 41, 70, 0.07);
+  border-top: 3px solid var(--teal);
+}
+
+.section-header {
+  padding: 1.4vh var(--pad-x) 1.2vh;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.section-name {
+  font-family: var(--font-display);
+  font-size: clamp(0.85rem, 1.8vh, 1.4rem);
+  font-weight: 600;
+  color: var(--plum);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Item list ── */
+.item-list { list-style: none; }
+
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5vw;
+  padding: 1.1vh var(--pad-x);
+  border-bottom: 1px solid var(--border);
+  transition: opacity 0.25s ease;
+}
+.item-row:last-child { border-bottom: none; }
+
+/* Thumbnail image */
+.item-thumb {
+  flex: 0 0 auto;
+  width: 4.5vh;
+  height: 4.5vh;
+  object-fit: cover;
+  border-radius: 0.6vw;
+  border: 2px solid var(--border);
+}
+
+/* Text wrapper: name · dots · price */
+.item-text {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  column-gap: 0.8vw;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Sold-out state */
+.item-row.sold-out { opacity: 0.42; }
+.item-row.sold-out .item-name {
+  text-decoration: line-through;
+  text-decoration-color: var(--sold-out-line);
+  text-decoration-thickness: 1px;
+}
+
+.item-name {
+  font-family: var(--font-display);
+  font-size: clamp(0.75rem, 1.7vh, 1.25rem);
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.item-dots {
+  align-self: flex-end;
+  width: 2vw;
+  min-width: 0.5vw;
+  border-bottom: 1.5px dotted var(--border);
+  margin-bottom: 0.3vh;
+}
+
+.item-price {
+  font-family: var(--font-display);
+  font-size: clamp(0.75rem, 1.7vh, 1.25rem);
+  font-weight: 600;
+  color: var(--pink-dim);
+  white-space: nowrap;
+}
+
+.item-sold-out-label {
+  font-family: var(--font-display);
+  font-size: clamp(0.6rem, 1.2vh, 0.9rem);
+  font-weight: 600;
+  color: var(--sold-out-text);
+  white-space: nowrap;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Variation sub-rows ── */
+.item-row.has-variations {
+  grid-template-columns: 1fr;
+  padding-bottom: 0;
+}
+
+.item-variations {
+  list-style: none;
+  padding: 0 var(--pad-x) 0.8vh calc(var(--pad-x) + 1.5vw);
+}
+
+.variation-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  column-gap: 0.5vw;
+  padding: 0.6vh 0;
+  border-bottom: 1px solid rgba(42, 37, 32, 0.07);
+}
+.variation-row:last-child { border-bottom: none; }
+
+.variation-row.sold-out .variation-name {
+  opacity: 0.4;
+  text-decoration: line-through;
+  text-decoration-color: var(--sold-out-line);
+}
+
+.variation-name {
+  font-family: var(--font-display);
+  font-size: clamp(0.65rem, 1.4vh, 1rem);
+  font-weight: 400;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.variation-dots {
+  align-self: flex-end;
+  width: 1.5vw;
+  min-width: 0.5vw;
+  border-bottom: 1.5px dotted var(--border);
+  margin-bottom: 0.2vh;
+}
+
+.variation-price {
+  font-family: var(--font-display);
+  font-size: clamp(0.65rem, 1.4vh, 1rem);
+  font-weight: 500;
+  color: var(--pink-dim);
+  white-space: nowrap;
+}
+
+.variation-sold-out-label {
+  font-family: var(--font-display);
+  font-size: clamp(0.55rem, 1.1vh, 0.85rem);
+  font-weight: 600;
+  color: var(--sold-out-text);
+  white-space: nowrap;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Empty section state ── */
+.section-empty {
+  padding: 2vh var(--pad-x);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(0.7rem, 1.4vh, 1rem);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ── Footer ── */
+.footer {
+  position: fixed;
+  inset: auto 0 0 0;
+  height: var(--footer-h);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2vw;
+  background: var(--pink);
+  border-top: 2px solid var(--pink-dim);
+  padding: 0 var(--pad-x);
+}
+
+.footer-location {
+  font-family: var(--font-display);
+  font-size: clamp(0.55rem, 1.1vh, 0.9rem);
+  font-weight: 600;
+  color: var(--white);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.footer-sep {
+  color: rgba(255,255,255,0.5);
+  font-size: 1vh;
+}
+
+.footer-updated {
+  font-family: var(--font-display);
+  font-size: clamp(0.55rem, 1.1vh, 0.9rem);
+  font-weight: 400;
+  color: rgba(255,255,255,0.8);
+}
+
+/* ── Loading / error states ── */
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50vh;
+}
+
+.loading-text {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(1rem, 2.2vh, 1.8rem);
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+
+/* ── Animations ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(1.2vh); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes softPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
+body.refreshing .footer-updated {
+  animation: softPulse 1.2s ease infinite;
+}
+
+/* ── Accessibility: reduce motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .sections-grid      { animation: none; }
+  .footer-updated     { animation: none !important; }
+  .item-row           { transition: none; }
+  .connection-warning { transition: none; }
+  .menu-root, .header { transition: none; }
+}
