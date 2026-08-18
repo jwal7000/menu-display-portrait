@@ -66,3 +66,14 @@ A standalone portrait-orientation digital menu board for Five Daughters Bakery v
 - All sizes use `vh`/`vw` units — layout scales to any 9:16 screen without media queries
 - `menu.json` schema is identical between horizontal and portrait; both projects can share the same data feed
 - Rolls and Paleo sections are stacked into a single grid cell (same behavior as horizontal)
+
+### 2026-08-18
+- **Server** — Persistent launchd agent added (`com.fivedaughters.menu-display-portrait`)
+  - Serves `public/` on port **4000** via `serve` (same binary as horizontal project)
+  - `KeepAlive=true` — restarts automatically if it crashes or Mac reboots
+  - Wrapper script (`scripts/serve-portrait.sh`) sets explicit PATH for launchd environment
+  - Logs: `logs/server.log` / `logs/server-error.log`
+- **Data sync** — Horizontal refresh script (`refresh-menu.sh`) updated to:
+  - Fix push URL → `menu-display-horizontal.git` (repo was renamed)
+  - Copy fresh `menu.json` to portrait `output/` on every 10-min refresh cycle
+- **Preview URL** — `http://192.168.12.216:4000/public/` (local network)
