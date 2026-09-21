@@ -15,7 +15,9 @@
 
   // ── Config ────────────────────────────────────────────────────────────────
 
-  const MENU_JSON_PATH   = "../output/menu.json";
+  const params         = new URLSearchParams(window.location.search);
+  const LOC            = params.get("loc") || "the-factory";
+  const MENU_JSON_PATH = `./data/${LOC}.json`;
   const REFRESH_INTERVAL = 30 * 1000; // 30 seconds — picks up 2-min inventory patches quickly
 
   // ── Element refs ──────────────────────────────────────────────────────────
