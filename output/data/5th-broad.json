@@ -123,7 +123,7 @@
           "variation_id": "XBIHTUUQVY7I277OOOHUYZI5",
           "name": "Mini Cinnamon Cream Cheese",
           "price": "$3.00",
-          "sold_out": false,
+          "sold_out": true,
           "preorder_only": false
         },
         {
@@ -319,5 +319,5 @@
       ]
     }
   ],
-  "inventory_patched_at": "2026-11-11T16:35:52.381Z"
+  "inventory_patched_at": "2026-11-11T16:39:22.173Z"
 }
