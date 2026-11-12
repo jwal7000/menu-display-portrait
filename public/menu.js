@@ -392,10 +392,46 @@
       return;
     }
 
-    // Swap in off-DOM to avoid flash
+    // Swap in off-DOM to avoid flash. The box around the grid is what gets scaled to fit.
+    const fitBox     = document.createElement("div");
+    fitBox.className = "fit-box";
+    fitBox.appendChild(grid);
     menuRoot.innerHTML = "";
-    menuRoot.appendChild(grid);
+    menuRoot.appendChild(fitBox);
+    fitToScreen();
   }
+
+  // ── Fit to screen ─────────────────────────────────────────────────────────
+  // The TV can't scroll, so anything below the footer is never seen. When the menu is taller
+  // than the space above the footer (or above the promo panel), scale it down just enough to
+  // fit. Width is widened by the same factor first, so after scaling it still fills the screen.
+  const MIN_FIT = 0.6;   // never shrink below this; past it, overflow is the lesser evil
+
+  function fitToScreen() {
+    const box = menuRoot.querySelector(".fit-box");
+    if (!box) return;
+    box.style.transform = "";
+    box.style.width     = "";
+    const cs    = getComputedStyle(menuRoot);
+    const avail = menuRoot.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    let scale = 1;
+    // Re-measure a few times: a wider box can wrap long names differently.
+    for (let i = 0; i < 5 && avail > 0; i++) {
+      const need = box.offsetHeight * scale;
+      if (need <= avail + 1) break;
+      scale = Math.max(MIN_FIT, scale * avail / need);
+      box.style.width     = (100 / scale) + "%";
+      box.style.transform = "scale(" + scale + ")";
+      if (scale === MIN_FIT) break;
+    }
+    document.body.dataset.fit = scale.toFixed(3);
+  }
+
+  // Re-fit when the available space changes (promo panel shown/hidden, screen size) and
+  // once the web fonts have loaded (they change text widths and heights).
+  if (window.ResizeObserver) new ResizeObserver(fitToScreen).observe(menuRoot);
+  window.addEventListener("resize", fitToScreen);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitToScreen);
 
   // ── Data fetching ─────────────────────────────────────────────────────────
 
