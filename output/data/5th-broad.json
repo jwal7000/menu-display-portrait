@@ -115,7 +115,7 @@
           "variation_id": "6AWNWMRW7J5AG4ZUI74KIV6W",
           "name": "Mini Milk Chocolate Sprinkles",
           "price": "$2.75",
-          "sold_out": true,
+          "sold_out": false,
           "preorder_only": false
         },
         {
@@ -319,5 +319,5 @@
       ]
     }
   ],
-  "inventory_patched_at": "2026-11-12T23:05:31.387Z"
+  "inventory_patched_at": "2026-11-12T23:07:08.731Z"
 }
