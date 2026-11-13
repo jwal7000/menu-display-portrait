@@ -305,7 +305,7 @@
           "variation_id": "7J35GG6BYE4AB44NQMVK6JVH",
           "name": "Cookie - Snowcap (GF)",
           "price": "$3.50",
-          "sold_out": false,
+          "sold_out": true,
           "preorder_only": false
         },
         {
@@ -318,5 +318,6 @@
         }
       ]
     }
-  ]
+  ],
+  "inventory_patched_at": "2026-11-13T13:13:30.672Z"
 }
