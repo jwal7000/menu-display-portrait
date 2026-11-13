@@ -22,7 +22,7 @@
           "variation_id": "6W4RPTRTDRXHQ47PS44P37MG",
           "name": "The Purist",
           "price": "$4.75",
-          "sold_out": false,
+          "sold_out": true,
           "preorder_only": false
         },
         {
@@ -131,7 +131,7 @@
           "variation_id": "IACOAEUPYZ3XFBRF7AQBJBP4",
           "name": "Mini Huckleberry Glaze",
           "price": "$2.75",
-          "sold_out": false,
+          "sold_out": true,
           "preorder_only": false
         },
         {
@@ -319,5 +319,5 @@
       ]
     }
   ],
-  "inventory_patched_at": "2026-11-13T23:49:59.405Z"
+  "inventory_patched_at": "2026-11-13T23:51:41.855Z"
 }
