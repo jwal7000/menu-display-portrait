@@ -94,7 +94,7 @@
           "variation_id": "QFGEIHMMPVJC2KUGKDRJ7HUA",
           "name": "Huckleberry Glaze",
           "price": "$5.35",
-          "sold_out": false,
+          "sold_out": true,
           "preorder_only": false
         }
       ]
@@ -319,5 +319,5 @@
       ]
     }
   ],
-  "inventory_patched_at": "2026-11-14T23:34:04.423Z"
+  "inventory_patched_at": "2026-11-14T23:35:44.583Z"
 }
