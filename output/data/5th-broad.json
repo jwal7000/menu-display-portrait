@@ -250,7 +250,7 @@
           "variation_id": "APZBQTD2756UIQEPG7UFLC3K",
           "name": "Roll - Vanilla Chai",
           "price": "$7.00",
-          "sold_out": false,
+          "sold_out": true,
           "preorder_only": false
         }
       ]
@@ -319,5 +319,5 @@
       ]
     }
   ],
-  "inventory_patched_at": "2026-11-15T19:59:42.845Z"
+  "inventory_patched_at": "2026-11-15T20:18:04.138Z"
 }
