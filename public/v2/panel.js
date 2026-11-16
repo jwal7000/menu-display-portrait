@@ -188,16 +188,39 @@
 
   // ── staff picks ──────────────────────────────────────────────────────────
 
-  /** { name, price, soldOut } for an item on today's pastry menu or drinks list, else null. */
+  /**
+   * { price, soldOut, image, description } for an item on today's pastry menu or drinks
+   * list, else null. Photos and descriptions come from Square via the pastry menu JSON;
+   * drinks have neither.
+   */
   function findItem(name) {
     for (const s of (state.menu && state.menu.sections) || []) {
-      for (const i of s.items || []) if (i.name === name) return { price: i.price, soldOut: !!i.sold_out };
+      for (const i of s.items || []) {
+        if (i.name === name) return { price: i.price, soldOut: !!i.sold_out, image: i.photo_url, description: i.description };
+      }
     }
     for (const s of (state.bev && state.bev.sections) || []) {
       const items = [...(s.items || []), ...(s.sub_sections || []).flatMap(x => x.items || [])];
       for (const i of items) if (i.name === name) return { price: i.price, soldOut: !drinkAvailable(i) };
     }
     return null;
+  }
+
+  /** One line of description: a leading "(Made with vegan ingredients)" would use it all up. */
+  function shortDescription(text) {
+    const t = String(text || "").replace(/^\([^)]*\)\s*/, "").trim();
+    return t ? t.charAt(0).toUpperCase() + t.slice(1) : "";
+  }
+
+  /** Square frame: the Square photo cropped to fill, or the logo on white when there's none. */
+  function pickPhoto(src) {
+    const frame = el("div", "sp-photo");
+    const img = el("img");
+    img.alt = "";
+    const fallback = () => { img.onerror = null; img.className = "sp-logo"; img.src = "../logo.png"; frame.classList.add("none"); };
+    if (src) { img.onerror = fallback; img.src = src; } else fallback();
+    frame.append(img);
+    return frame;
   }
 
   function buildPicks() {
@@ -209,8 +232,12 @@
     const grid = el("div", `sp-grid n${picks.length}`);
     for (const p of picks) {
       const card = el("div", "sp-card" + (p.found.soldOut ? " so" : ""));
-      if (p.found.soldOut) card.append(el("span", "sp-badge", "SOLD OUT TODAY"));
-      card.append(el("div", "sp-item", p.item), el("div", "sp-price", p.found.price));
+      const photo = pickPhoto(p.found.image);
+      if (p.found.soldOut) photo.append(el("span", "sp-badge", "SOLD OUT TODAY"));
+      card.append(photo, el("div", "sp-item", p.item));
+      const desc = shortDescription(p.found.description);
+      card.append(el("div", "sp-desc", desc || "\u00a0"));   // blank line keeps cards aligned
+      card.append(el("div", "sp-price", p.found.price));
       if (p.note) card.append(el("div", "sp-note", p.note));
       else card.append(el("div", "sp-spacer"));
       const who = el("div", "sp-who", p.staff);

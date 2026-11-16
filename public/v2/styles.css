@@ -548,7 +548,17 @@ body.has-panel .panel { display: flex; }
                 text-transform: uppercase; -webkit-text-stroke: 0; }
 .sp-card.so .sp-item  { text-decoration: line-through; color: var(--sold-out-text); }
 .sp-card.so .sp-price { color: var(--sold-out-text); }
-.sp-badge { display: inline-block; margin-bottom: 0.6vh; align-self: flex-start; font-size: 0.85vh; letter-spacing: 0.08em;
+.sp-badge { position: absolute; left: 0.8vh; top: 0.8vh; font-size: 0.85vh; letter-spacing: 0.08em;
             background: var(--white); color: var(--text-muted); padding: 0.2vh 0.8vw; border-radius: 999px; -webkit-text-stroke: 0; }
+/* Square photo frame: cropped to fill; the logo on white when Square has no photo. */
+.sp-photo { position: relative; width: 100%; max-width: 12vh; aspect-ratio: 1 / 1; align-self: center; flex: none;
+            margin-bottom: 1.1vh; border-radius: calc(var(--radius) * 0.75); overflow: hidden;
+            background: var(--white); box-shadow: 0 0 0 2px var(--white); }
+.sp-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.sp-photo.none { display: flex; align-items: center; justify-content: center; border: 2px solid var(--border); box-shadow: none; }
+.sp-photo.none .sp-logo { width: 46%; height: auto; opacity: 0.55; }
+.sp-desc  { font-size: 1.05vh; line-height: 1.3; color: var(--text-muted); margin-top: 0.3vh;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-card.so .sp-photo img { filter: grayscale(1); opacity: 0.45; }
 
 @media (prefers-reduced-motion: reduce) { .panel-view { animation: none; } }
