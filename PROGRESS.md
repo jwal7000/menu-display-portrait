@@ -77,3 +77,10 @@ A standalone portrait-orientation digital menu board for Five Daughters Bakery v
   - Fix push URL → `menu-display-horizontal.git` (repo was renamed)
   - Copy fresh `menu.json` to portrait `output/` on every 10-min refresh cycle
 - **Preview URL** — `http://192.168.12.216:4000/public/` (local network)
+
+### 2026-11-16 — v2 (pilot: The Factory)
+- **New page:** `public/v2/` (`/v2/?loc=the-factory`). The original page is unchanged; the pilot starts when the Factory's Fire Stick start URL points at `/v2/`, and pointing it back is the rollback.
+- **Layout:** logo and store name on one line; pastry menu with tighter rows (same data, same 30 s refresh, same fit-to-screen); a panel on the bottom 28% rotating every 20 s through drinks, seasonal promos and staff picks. Views with nothing to show are skipped.
+- **Also new in v2:** staff sold-out overrides from `admin.html` and the noon Breakfast cutoff, matching the horizontal display.
+- **Data:** `data/bev-{loc}.json` and `data/promos-{loc}.json` (both published by `menu-build`), promo images in `public/promos/`, staff picks and drink overrides read live from GitHub. Details in `menu-display-horizontal` `cloudrun/HANDOFF.md` ("Display changes").
+- **Test options:** `?view=drinks|promo|picks` holds one view; `?every=<seconds>` changes the rotation.
