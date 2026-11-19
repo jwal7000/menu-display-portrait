@@ -139,7 +139,7 @@
           "variation_id": "6AWNWMRW7J5AG4ZUI74KIV6W",
           "name": "Mini Milk Chocolate Sprinkles",
           "price": "$2.75",
-          "sold_out": true,
+          "sold_out": false,
           "preorder_only": false,
           "photo_url": "https://items-images-production.s3.us-west-2.amazonaws.com/files/fde8e247bdb0324ce48e514669301112467a149e/original.jpeg",
           "description": "dipped in milk chocolate and topped with naturally-dyed sprinkles"
@@ -159,7 +159,7 @@
           "variation_id": "IACOAEUPYZ3XFBRF7AQBJBP4",
           "name": "Mini Huckleberry Glaze",
           "price": "$2.75",
-          "sold_out": true,
+          "sold_out": false,
           "preorder_only": false,
           "photo_url": "https://items-images-production.s3.us-west-2.amazonaws.com/files/29151f02215f80802f3d270c63fcc189db25cf0c/original.jpeg",
           "description": "Topped with huckleberry glaze"
@@ -385,5 +385,5 @@
       ]
     }
   ],
-  "inventory_patched_at": "2026-11-19T17:39:16.621Z"
+  "inventory_patched_at": "2026-11-19T17:49:39.078Z"
 }
