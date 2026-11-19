@@ -9,8 +9,8 @@
  *            one slide per turn, so several slides take turns
  *   picks    staff-picks-{loc}.json, written by the Staff picks tab of admin.html.
  *            Each pick is looked up in today's pastry menu (via the "fdb:menu" event from
- *            menu.js) or the drinks list; a pick that isn't on today is left out, and a
- *            sold-out pick says so.
+ *            menu.js) or the drinks list; a pick that isn't on today is left out, sold out
+ *            or not. Picks expire at midnight Central on the 1st of the next month.
  *
  * A view with nothing to show is skipped. With no views at all the panel is hidden and
  * the pastry menu gets the whole screen.
@@ -86,7 +86,10 @@
       }).catch(() => {}),
       state.addons ? null : getJson(URLS.addons).then(d => { state.addons = d; }).catch(() => {}),
       getJson(URLS.promos).then(d => { state.promos = Array.isArray(d.slides) ? d.slides : []; }).catch(() => {}),
-      getJson(URLS.picks).then(d => { state.picks = Array.isArray(d.picks) ? d.picks : []; }).catch(() => {}),
+      getJson(URLS.picks).then(d => {
+        state.picks = Array.isArray(d.picks) ? d.picks : [];
+        state.picksUpdated = d._updated_at || null;
+      }).catch(() => {}),
     ]);
   }
 
@@ -188,6 +191,34 @@
 
   // ── staff picks ──────────────────────────────────────────────────────────
 
+  // Picks expire at midnight Central on the 1st of the month after they're saved (admin.html
+  // stores expires_at). Older picks without it count from the file's _updated_at.
+  const PICKS_TZ = "America/Chicago";
+  function nextMonthStart(now) {
+    const [y, m] = now.toLocaleDateString("en-CA", { timeZone: PICKS_TZ }).split("-").map(Number);
+    const ny = m === 12 ? y + 1 : y, nm = m === 12 ? 1 : m + 1;
+    const day = `${ny}-${String(nm).padStart(2, "0")}-01`;
+    for (const offset of [5, 6]) {   // CDT, CST
+      const t = new Date(Date.UTC(ny, nm - 1, 1, offset));
+      if (t.toLocaleDateString("en-CA", { timeZone: PICKS_TZ }) === day &&
+          t.toLocaleTimeString("en-GB", { timeZone: PICKS_TZ, hour12: false }) === "00:00:00") return t;
+    }
+    return new Date(Date.UTC(ny, nm - 1, 1, 6));
+  }
+  function pickExpired(p, fileUpdatedAt, now = Date.now()) {
+    const at = p.expires_at || (fileUpdatedAt ? nextMonthStart(new Date(fileUpdatedAt)).toISOString() : null);
+    return !at || Date.parse(at) <= now;
+  }
+
+  /** Unexpired picks whose item is on today's menu or drinks list, at most three, with { found }. */
+  function currentPicks() {
+    return state.picks
+      .filter(p => p && p.item && !pickExpired(p, state.picksUpdated))
+      .map(p => ({ ...p, found: findItem(p.item) }))
+      .filter(p => p.found)
+      .slice(0, 3);
+  }
+
   /**
    * { price, image, description } for an item on today's pastry menu or drinks
    * list, else null. Photos and descriptions come from Square via the pastry menu JSON;
@@ -224,10 +255,7 @@
   }
 
   function buildPicks() {
-    const picks = state.picks
-      .map(p => ({ ...p, found: p && p.item ? findItem(p.item) : null }))
-      .filter(p => p.found)
-      .slice(0, 3);
+    const picks = currentPicks();
     if (!picks.length) return null;
     const grid = el("div", `sp-grid n${picks.length}`);
     for (const p of picks) {
@@ -297,7 +325,7 @@
     return order.filter(v =>
       v === "drinks" ? !!(state.bev && state.bev.sections && state.bev.sections.length)
       : v === "promo" ? liveSlides().length > 0
-      : state.picks.some(p => p && p.item && findItem(p.item)));
+      : currentPicks().length > 0);
   }
 
   // ── boot ─────────────────────────────────────────────────────────────────
