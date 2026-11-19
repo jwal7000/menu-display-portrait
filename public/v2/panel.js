@@ -1,23 +1,26 @@
 /**
  * panel.js — rotating panel under the pastry menu (portrait v2).
  *
- * Views, about 20 s each, in this order:
- *   drinks   ../data/bev-{loc}.json (built by menu-build from bev-items-config.json)
- *            + staff sold-out overrides from the beverages repo (same file bev.js reads)
- *            + add-ons from the beverages site
- *   promo    ../data/promos-{loc}.json (built by menu-build from the Dropbox promo folder);
- *            one slide per turn, so several slides take turns
- *   picks    staff-picks-{loc}.json, written by the Staff picks tab of admin.html.
- *            Each pick is looked up in today's pastry menu (via the "fdb:menu" event from
- *            menu.js) or the drinks list; a pick that isn't on today is left out, sold out
- *            or not. Picks expire at midnight Central on the 1st of the next month.
+ * The four views live in panel-views.js (shared components); this file fetches their data,
+ * rotates them and lays them out. Views, about 20 s each, in this order:
+ *   drinks    ../data/bev-{loc}.json (built by menu-build from bev-items-config.json)
+ *             + staff sold-out overrides from the beverages repo (same file bev.js reads)
+ *             + add-ons from the beverages site
+ *   promos    ../data/promos-{loc}.json (built by menu-build from the store's Dropbox promo
+ *             folders); one slide per turn, so several slides take turns
+ *   featured  items menu-build marked featured (Square category "Menu Screen – Featured")
+ *             that are on today's menu and not sold out, three per turn
+ *   picks     staff-picks-{loc}.json, written by the Staff picks tab of admin.html; unexpired
+ *             picks whose item is on today's pastry menu or drinks list
+ * The pastry menu comes from menu.js through the "fdb:menu" event, with staff sold-out
+ * overrides and the noon Breakfast cutoff already applied.
  *
  * A view with nothing to show is skipped. With no views at all the panel is hidden and
  * the pastry menu gets the whole screen.
  *
- * URL options (for testing): ?view=drinks|promo|picks holds one view; ?every=<seconds>.
+ * URL options (for testing): ?view=drinks|promos|featured|picks holds one view;
+ * ?every=<seconds>.
  */
-
 (function () {
   "use strict";
 
@@ -35,19 +38,12 @@
     picks:     `https://raw.githubusercontent.com/jwal7000/menu-display-horizontal/main/public/staff-picks-${LOC}.json`,
   };
 
-  const VIEWS  = ["drinks", "promo", "picks"];
-  const TITLES = { drinks: "Coffee & Drinks", promo: "Seasonal", picks: "Staff Picks" };
-  const PILLS  = { drinks: "Drinks", promo: "Seasonal", picks: "Staff picks" };
-
-  // Drinks columns. Sections not listed go to the shortest column. Grab-and-go cooler
-  // items (OTHER DRINKS, JUICES) are left off: they're in plain sight in the case.
-  const DRINK_COLS = { "ESPRESSO": 0, "COFFEE + NITRO": 1, "SEASONAL DRINKS": 1, "NON ESPRESSO": 2 };
-  const DRINK_SKIP = new Set(["OTHER DRINKS", "JUICES (12oz)"]);
+  const VIEWS = FdbPanelViews.create({ assets: { promos: "../promos/", logo: "../logo.png" } });
+  const HOLD_ID = HOLD === "promo" ? "promos" : HOLD;   // old name for the promos view
 
   const panel = document.getElementById("panel");
-  const state = { bev: null, bevSoldOut: new Set(), addons: null, promos: [], picks: [], menu: null };
-  let viewIdx  = -1;
-  let slideIdx = -1;
+  const state = { bev: null, bevSoldOut: new Set(), addons: null, promos: [], picks: [], picksUpdated: null, menu: null };
+  let viewIdx = -1;
 
   // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -62,12 +58,6 @@
     const res = await fetch(url + (url.includes("?") ? "&" : "?") + "t=" + Date.now());
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
-  }
-
-  /** Today as YYYY-MM-DD in the device's time zone. */
-  function today() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
 
   // ── data ─────────────────────────────────────────────────────────────────
@@ -99,185 +89,7 @@
     setTimeout(resolve, 10000);
   });
 
-  // ── drinks ───────────────────────────────────────────────────────────────
-
-  function drinkAvailable(item) {
-    return item.available !== false && !state.bevSoldOut.has(item.name);
-  }
-
-  function drinkRow(item) {
-    const ok  = drinkAvailable(item);
-    const row = el("div", "dr-row" + (ok ? "" : " so"));
-    row.append(el("span", "n", item.name), el("span", "d"), el("span", "p", ok ? item.price : "SOLD OUT"));
-    return row;
-  }
-
-  function drinkSection(sec) {
-    const box = el("div", "dr-sec");
-    const h   = el("h3", null, sec.name.toLowerCase());
-    if (sec.temp_label) h.append(el("span", "dr-label", sec.temp_label));
-    box.append(h);
-    (sec.items || []).forEach(i => box.append(drinkRow(i)));
-    (sec.sub_sections || []).forEach((sub, k) => {
-      if (k === 0 && !sec.temp_label && sub.temp_label) h.append(el("span", "dr-label", sub.temp_label));
-      else if (sub.temp_label) box.append(el("div", "dr-label dr-sub", sub.temp_label));
-      (sub.items || []).forEach(i => box.append(drinkRow(i)));
-    });
-    return box;
-  }
-
-  function addonsLine() {
-    const a = state.addons;
-    if (!a) return null;
-    const parts = [];
-    if (a.milk && a.milk.items) {
-      const prices = [...new Set(a.milk.items.map(m => m.price))];
-      parts.push(a.milk.items.map(m => m.name).join(" or ") + (prices.length === 1 ? " " + prices[0].replace(/\s+/g, "") : ""));
-    }
-    if (a.syrups && a.syrups.items) {
-      parts.push(`Syrups ${a.syrups.price_note ? a.syrups.price_note.replace(/\s+/g, "") + ": " : ""}${a.syrups.items.join(", ").toLowerCase()}`);
-    }
-    return parts.length ? el("div", "dr-add", parts.join(" · ")) : null;
-  }
-
-  function buildDrinks() {
-    const sections = (state.bev && state.bev.sections || []).filter(s => !DRINK_SKIP.has(s.name));
-    if (!sections.length) return null;
-    const cols = [el("div"), el("div"), el("div")];
-    const rows = [0, 0, 0];
-    const size = s => 1 + (s.items || []).length + (s.sub_sections || []).reduce((n, x) => n + 1 + x.items.length, 0);
-    for (const s of sections) {
-      const c = s.name in DRINK_COLS ? DRINK_COLS[s.name] : rows.indexOf(Math.min(...rows));
-      cols[c].append(drinkSection(s));
-      rows[c] += size(s);
-    }
-    const add = addonsLine();
-    if (add) cols[0].append(add);
-    const grid = el("div", "dr-grid");
-    grid.append(...cols);
-    return grid;
-  }
-
-  // ── seasonal promos ──────────────────────────────────────────────────────
-
-  function liveSlides() {
-    const d = today();
-    return state.promos.filter(s => s.image && (!s.starts || s.starts <= d) && (!s.ends || s.ends >= d));
-  }
-
-  function buildPromo() {
-    const slides = liveSlides();
-    if (!slides.length) return null;
-    slideIdx = (slideIdx + 1) % slides.length;
-    const s   = slides[slideIdx];
-    const img = el("img");
-    img.src = "../promos/" + encodeURIComponent(s.image);
-    img.alt = s.title || "";
-
-    if (s.type !== "card") {
-      const g = el("div", "pr-graphic");
-      g.append(img);
-      return g;
-    }
-    const wrap = el("div", "pr");
-    const pic  = el("div", "pr-img");
-    pic.append(img);
-    const text = el("div");
-    text.append(el("div", "pr-tag", s.tag), el("div", "pr-title", s.title), el("div", "pr-body", s.body));
-    if (s.price) text.append(el("div", "pr-price", s.price));
-    wrap.append(pic, text);
-    return wrap;
-  }
-
-  // ── staff picks ──────────────────────────────────────────────────────────
-
-  // Picks expire at midnight Central on the 1st of the month after they're saved (admin.html
-  // stores expires_at). Older picks without it count from the file's _updated_at.
-  const PICKS_TZ = "America/Chicago";
-  function nextMonthStart(now) {
-    const [y, m] = now.toLocaleDateString("en-CA", { timeZone: PICKS_TZ }).split("-").map(Number);
-    const ny = m === 12 ? y + 1 : y, nm = m === 12 ? 1 : m + 1;
-    const day = `${ny}-${String(nm).padStart(2, "0")}-01`;
-    for (const offset of [5, 6]) {   // CDT, CST
-      const t = new Date(Date.UTC(ny, nm - 1, 1, offset));
-      if (t.toLocaleDateString("en-CA", { timeZone: PICKS_TZ }) === day &&
-          t.toLocaleTimeString("en-GB", { timeZone: PICKS_TZ, hour12: false }) === "00:00:00") return t;
-    }
-    return new Date(Date.UTC(ny, nm - 1, 1, 6));
-  }
-  function pickExpired(p, fileUpdatedAt, now = Date.now()) {
-    const at = p.expires_at || (fileUpdatedAt ? nextMonthStart(new Date(fileUpdatedAt)).toISOString() : null);
-    return !at || Date.parse(at) <= now;
-  }
-
-  /** Unexpired picks whose item is on today's menu or drinks list, at most three, with { found }. */
-  function currentPicks() {
-    return state.picks
-      .filter(p => p && p.item && !pickExpired(p, state.picksUpdated))
-      .map(p => ({ ...p, found: findItem(p.item) }))
-      .filter(p => p.found)
-      .slice(0, 3);
-  }
-
-  /**
-   * { price, image, description } for an item on today's pastry menu or drinks
-   * list, else null. Photos and descriptions come from Square via the pastry menu JSON;
-   * drinks have neither.
-   */
-  function findItem(name) {
-    for (const s of (state.menu && state.menu.sections) || []) {
-      for (const i of s.items || []) {
-        if (i.name === name) return { price: i.price, image: i.photo_url, description: i.description };
-      }
-    }
-    for (const s of (state.bev && state.bev.sections) || []) {
-      const items = [...(s.items || []), ...(s.sub_sections || []).flatMap(x => x.items || [])];
-      for (const i of items) if (i.name === name) return { price: i.price };
-    }
-    return null;
-  }
-
-  /** One line of description: a leading "(Made with vegan ingredients)" would use it all up. */
-  function shortDescription(text) {
-    const t = String(text || "").replace(/^\([^)]*\)\s*/, "").trim();
-    return t ? t.charAt(0).toUpperCase() + t.slice(1) : "";
-  }
-
-  /** Square frame: the Square photo cropped to fill, or the logo on white when there's none. */
-  function pickPhoto(src) {
-    const frame = el("div", "sp-photo");
-    const img = el("img");
-    img.alt = "";
-    const fallback = () => { img.onerror = null; img.className = "sp-logo"; img.src = "../logo.png"; frame.classList.add("none"); };
-    if (src) { img.onerror = fallback; img.src = src; } else fallback();
-    frame.append(img);
-    return frame;
-  }
-
-  function buildPicks() {
-    const picks = currentPicks();
-    if (!picks.length) return null;
-    const grid = el("div", `sp-grid n${picks.length}`);
-    for (const p of picks) {
-      const card = el("div", "sp-card");   // shown the same whether or not it's sold out
-      const photo = pickPhoto(p.found.image);
-      card.append(photo, el("div", "sp-item", p.item));
-      const desc = shortDescription(p.found.description);
-      card.append(el("div", "sp-desc", desc || "\u00a0"));   // blank line keeps cards aligned
-      card.append(el("div", "sp-price", p.found.price));
-      if (p.note) card.append(el("div", "sp-note", p.note));
-      else card.append(el("div", "sp-spacer"));
-      const who = el("div", "sp-who", p.staff);
-      if (p.role) who.append(el("small", null, p.role));
-      card.append(who);
-      grid.append(card);
-    }
-    return grid;
-  }
-
   // ── rotation ─────────────────────────────────────────────────────────────
-
-  const BUILDERS = { drinks: buildDrinks, promo: buildPromo, picks: buildPicks };
 
   /** Scale a view down if it's taller than the panel (e.g. a long drinks list). */
   function fitView(view, body) {
@@ -292,40 +104,37 @@
     }
   }
 
-  function render(name, content, available) {
+  function render(view, content, available) {
     panel.innerHTML = "";
     const head  = el("div", "panel-head");
     const pills = el("div", "panel-pills");
-    available.forEach(v => pills.append(el("span", "panel-pill" + (v === name ? " on" : ""), PILLS[v])));
-    head.append(el("div", "panel-title", TITLES[name]), pills);
+    available.forEach(v => pills.append(el("span", "panel-pill" + (v === view ? " on" : ""), v.pill)));
+    head.append(el("div", "panel-title", view.title), pills);
     const body = el("div", "panel-body");
-    const view = el("div", "panel-view view-" + name);
-    view.append(content);
-    body.append(view);
+    const box  = el("div", "panel-view view-" + view.id);
+    box.append(content);
+    body.append(box);
     panel.append(head, body);
     document.body.classList.add("has-panel");
-    fitView(view, body);
-    view.querySelectorAll("img").forEach(img => img.addEventListener("load", () => fitView(view, body)));
+    fitView(box, body);
+    box.querySelectorAll("img").forEach(img => img.addEventListener("load", () => fitView(box, body)));
   }
 
   function next() {
-    const order = HOLD && VIEWS.includes(HOLD) ? [HOLD] : VIEWS;
+    const held  = VIEWS.filter(v => v.id === HOLD_ID);
+    const order = held.length ? held : VIEWS;
     // Try each view once, starting after the current one; the first with content wins.
     for (let k = 1; k <= order.length; k++) {
-      const name = order[(viewIdx + k) % order.length];
-      const content = BUILDERS[name]();
-      if (content) { viewIdx = (viewIdx + k) % order.length; render(name, content, availableViews(VIEWS)); return; }
+      const view = order[(viewIdx + k) % order.length];
+      const content = view.build(state);
+      if (content) {
+        viewIdx = (viewIdx + k) % order.length;
+        render(view, content, VIEWS.filter(v => v.has(state)));
+        return;
+      }
     }
     document.body.classList.remove("has-panel");   // nothing to show: pastry gets the screen
     panel.innerHTML = "";
-  }
-
-  /** The views that currently have content, for the pills. Cheap: just checks the data. */
-  function availableViews(order) {
-    return order.filter(v =>
-      v === "drinks" ? !!(state.bev && state.bev.sections && state.bev.sections.length)
-      : v === "promo" ? liveSlides().length > 0
-      : currentPicks().length > 0);
   }
 
   // ── boot ─────────────────────────────────────────────────────────────────
