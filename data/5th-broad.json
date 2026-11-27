@@ -1,7 +1,7 @@
 {
   "location_id": "L862ACB6EPKVT",
   "location_name": "5th & Broadway",
-  "generated_at": "2026-11-27T20:21:19.951Z",
+  "generated_at": "2026-11-27T21:21:22.996Z",
   "source": "FlavorSchedule+Square",
   "section_count": 8,
   "item_count": 34,
@@ -384,6 +384,5 @@
         }
       ]
     }
-  ],
-  "inventory_patched_at": "2026-11-27T21:13:59.733Z"
+  ]
 }
